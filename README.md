@@ -1,4 +1,4 @@
-# Ongoing
+# Ongoing ✦
 **Ongoing** is a premium task and notes app built around one simple idea: unfinished work should never disappear. Tasks roll forward automatically, notes stay timeless, and progress stays visible.
 
 ## Why Ongoing
