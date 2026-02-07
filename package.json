@@ -1,0 +1,16 @@
+{
+  "name": "ongoing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx concurrently -k -n server,client -c green,cyan \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client run build",
+    "vercel-build": "npm --prefix client run build"
+  },
+  "dependencies": {
+    "mongoose": "^9.1.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
