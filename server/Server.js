@@ -13,6 +13,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const getUserId = (req) => req.header("x-user-id") || req.body?.userId || req.query?.userId;
+
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected"))
@@ -23,13 +25,18 @@ const getToday = () => new Date().toISOString().split("T")[0];
 app.get("/tasks", async (req, res) => {
   const view = req.query.view || "today";
   const today = getToday();
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
 
   if (view === "today") {
     await Task.updateMany(
-      { completed: false, killed: { $ne: true }, day: { $lt: today } },
+      { userId, completed: false, killed: { $ne: true }, day: { $lt: today } },
       { $set: { day: today }, $inc: { rolloverCount: 1 } }
     );
-    const tasks = await Task.find({ day: today, killed: { $ne: true } }).sort({
+    const tasks = await Task.find({ userId, day: today, killed: { $ne: true } }).sort({
       createdAt: -1
     });
     res.json(tasks);
@@ -38,19 +45,26 @@ app.get("/tasks", async (req, res) => {
 
   if (view === "history") {
     const tasks = await Task.find({
+      userId,
       $or: [{ completed: true, day: { $lt: today } }, { killed: true }]
     }).sort({ killedAt: -1, completedAt: -1, createdAt: -1 });
     res.json(tasks);
     return;
   }
 
-  const tasks = await Task.find().sort({ createdAt: -1 });
+  const tasks = await Task.find({ userId }).sort({ createdAt: -1 });
   res.json(tasks);
 });
 
 app.post("/tasks", async (req, res) => {
   const { text, color, day } = req.body;
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
   const task = await Task.create({
+    userId,
     text,
     color: color || "sage",
     day: day || getToday(),
@@ -60,11 +74,16 @@ app.post("/tasks", async (req, res) => {
 });
 
 app.patch("/tasks/:id", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
   const updates = { ...req.body };
   if (Object.prototype.hasOwnProperty.call(updates, "completed")) {
     updates.completedAt = updates.completed ? new Date() : null;
   }
-  const task = await Task.findByIdAndUpdate(req.params.id, updates, { new: true });
+  const task = await Task.findOneAndUpdate({ _id: req.params.id, userId }, updates, { new: true });
   res.json(task);
 });
 
@@ -74,12 +93,17 @@ app.patch("/tasks", async (req, res) => {
     res.status(400).json({ error: "Task id is required." });
     return;
   }
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
   const today = getToday();
   const action = req.body?.action;
 
   if (action === "do_today") {
-    const task = await Task.findByIdAndUpdate(
-      id,
+    const task = await Task.findOneAndUpdate(
+      { _id: id, userId },
       { decisionStatus: "do_today", decisionStatusDate: today },
       { new: true }
     );
@@ -88,7 +112,7 @@ app.patch("/tasks", async (req, res) => {
   }
 
   if (action === "rescope") {
-    const task = await Task.findById(id);
+    const task = await Task.findOne({ _id: id, userId });
     if (!task) {
       res.status(404).json({ error: "Task not found." });
       return;
@@ -119,6 +143,7 @@ app.patch("/tasks", async (req, res) => {
     const created = rest.length
       ? await Task.insertMany(
           rest.map((text) => ({
+            userId,
             text,
             color: task.color || "mist",
             day: today,
@@ -136,8 +161,8 @@ app.patch("/tasks", async (req, res) => {
       res.status(400).json({ error: "Kill reason is required." });
       return;
     }
-    const task = await Task.findByIdAndUpdate(
-      id,
+    const task = await Task.findOneAndUpdate(
+      { _id: id, userId },
       {
         killed: true,
         killedAt: new Date(),
@@ -160,12 +185,17 @@ app.patch("/tasks", async (req, res) => {
   if (Object.prototype.hasOwnProperty.call(updates, "completed")) {
     updates.completedAt = updates.completed ? new Date() : null;
   }
-  const task = await Task.findByIdAndUpdate(id, updates, { new: true });
+  const task = await Task.findOneAndUpdate({ _id: id, userId }, updates, { new: true });
   res.json(task);
 });
 
 app.delete("/tasks/:id", async (req, res) => {
-  await Task.findByIdAndDelete(req.params.id);
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  await Task.findOneAndDelete({ _id: req.params.id, userId });
   res.json({ ok: true });
 });
 
@@ -175,23 +205,50 @@ app.delete("/tasks", async (req, res) => {
     res.status(400).json({ error: "Task id is required." });
     return;
   }
-  await Task.findByIdAndDelete(id);
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  await Task.findOneAndDelete({ _id: id, userId });
   res.json({ ok: true });
 });
 
 app.get("/notes", async (req, res) => {
-  const notes = await Note.find().sort({ updatedAt: -1, createdAt: -1 });
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  const notes = await Note.find({ userId }).sort({ updatedAt: -1, createdAt: -1 });
   res.json(notes);
 });
 
 app.post("/notes", async (req, res) => {
   const { title, text, color } = req.body;
-  const note = await Note.create({ title: title || "", text, color: color || "mist" });
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  const note = await Note.create({
+    userId,
+    title: title || "",
+    text,
+    color: color || "mist"
+  });
   res.status(201).json(note);
 });
 
 app.patch("/notes/:id", async (req, res) => {
-  const note = await Note.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  const note = await Note.findOneAndUpdate({ _id: req.params.id, userId }, req.body, {
+    new: true
+  });
   res.json(note);
 });
 
@@ -201,14 +258,24 @@ app.patch("/notes", async (req, res) => {
     res.status(400).json({ error: "Note id is required." });
     return;
   }
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
   const updates = { ...req.body };
   delete updates.id;
-  const note = await Note.findByIdAndUpdate(id, updates, { new: true });
+  const note = await Note.findOneAndUpdate({ _id: id, userId }, updates, { new: true });
   res.json(note);
 });
 
 app.delete("/notes/:id", async (req, res) => {
-  await Note.findByIdAndDelete(req.params.id);
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  await Note.findOneAndDelete({ _id: req.params.id, userId });
   res.json({ ok: true });
 });
 
@@ -218,7 +285,12 @@ app.delete("/notes", async (req, res) => {
     res.status(400).json({ error: "Note id is required." });
     return;
   }
-  await Note.findByIdAndDelete(id);
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
+  await Note.findOneAndDelete({ _id: id, userId });
   res.json({ ok: true });
 });
 

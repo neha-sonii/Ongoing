@@ -2,17 +2,23 @@ import { connectDB } from "./_db.js";
 import Task from "../server/models/Task.js";
 
 const getToday = () => new Date().toISOString().split("T")[0];
+const getUserId = (req) => req.headers["x-user-id"] || req.query.userId || (req.body || {}).userId;
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Id");
   if (req.method === "OPTIONS") {
     res.status(200).end();
     return;
   }
 
   await connectDB();
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id." });
+    return;
+  }
 
   if (req.method === "GET") {
     const view = req.query.view || "today";
@@ -20,23 +26,26 @@ export default async function handler(req, res) {
 
     if (view === "today") {
       await Task.updateMany(
-        { completed: false, killed: { $ne: true }, day: { $lt: today } },
+        { userId, completed: false, killed: { $ne: true }, day: { $lt: today } },
         { $set: { day: today }, $inc: { rolloverCount: 1 } }
       );
-      const tasks = await Task.find({ day: today, killed: { $ne: true } }).sort({ createdAt: -1 });
+      const tasks = await Task.find({ userId, day: today, killed: { $ne: true } }).sort({
+        createdAt: -1
+      });
       res.status(200).json(tasks);
       return;
     }
 
     if (view === "history") {
       const tasks = await Task.find({
+        userId,
         $or: [{ completed: true, day: { $lt: today } }, { killed: true }]
       }).sort({ killedAt: -1, completedAt: -1, createdAt: -1 });
       res.status(200).json(tasks);
       return;
     }
 
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ userId }).sort({ createdAt: -1 });
     res.status(200).json(tasks);
     return;
   }
@@ -48,6 +57,7 @@ export default async function handler(req, res) {
       return;
     }
     const task = await Task.create({
+      userId,
       text,
       color: color || "mist",
       day: day || getToday()
@@ -67,8 +77,8 @@ export default async function handler(req, res) {
     const action = body.action;
 
     if (action === "do_today") {
-      const task = await Task.findByIdAndUpdate(
-        id,
+      const task = await Task.findOneAndUpdate(
+        { _id: id, userId },
         { decisionStatus: "do_today", decisionStatusDate: today },
         { new: true }
       );
@@ -81,7 +91,7 @@ export default async function handler(req, res) {
     }
 
     if (action === "rescope") {
-      const task = await Task.findById(id);
+      const task = await Task.findOne({ _id: id, userId });
       if (!task) {
         res.status(404).json({ error: "Task not found." });
         return;
@@ -111,13 +121,14 @@ export default async function handler(req, res) {
 
       const created = rest.length
         ? await Task.insertMany(
-            rest.map((text) => ({
-              text,
-              color: task.color || "mist",
-              day: today,
-              rolloverCount: 0
-            }))
-          )
+          rest.map((text) => ({
+            userId,
+            text,
+            color: task.color || "mist",
+            day: today,
+            rolloverCount: 0
+          }))
+        )
         : [];
       res.status(200).json({ updated: task, created });
       return;
@@ -129,8 +140,8 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Kill reason is required." });
         return;
       }
-      const task = await Task.findByIdAndUpdate(
-        id,
+      const task = await Task.findOneAndUpdate(
+        { _id: id, userId },
         {
           killed: true,
           killedAt: new Date(),
@@ -157,7 +168,7 @@ export default async function handler(req, res) {
     if (Object.prototype.hasOwnProperty.call(updates, "completed")) {
       updates.completedAt = updates.completed ? new Date() : null;
     }
-    const task = await Task.findByIdAndUpdate(id, updates, { new: true });
+    const task = await Task.findOneAndUpdate({ _id: id, userId }, updates, { new: true });
     if (!task) {
       res.status(404).json({ error: "Task not found." });
       return;
@@ -172,7 +183,7 @@ export default async function handler(req, res) {
       res.status(400).json({ error: "Task id is required." });
       return;
     }
-    const task = await Task.findByIdAndDelete(id);
+    const task = await Task.findOneAndDelete({ _id: id, userId });
     if (!task) {
       res.status(404).json({ error: "Task not found." });
       return;

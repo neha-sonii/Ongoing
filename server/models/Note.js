@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const noteSchema = new mongoose.Schema(
   {
+    userId: { type: String, required: true },
     title: { type: String, default: "" },
     text: { type: String, required: true },
     color: { type: String, default: "mist" }

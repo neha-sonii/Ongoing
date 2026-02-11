@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const taskSchema = new mongoose.Schema(
   {
+    userId: { type: String, required: true },
     text: { type: String, required: true },
     completed: { type: Boolean, default: false },
     completedAt: { type: Date, default: null },
