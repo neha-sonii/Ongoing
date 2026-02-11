@@ -44,7 +44,7 @@ textarea {
   position: relative;
   min-height: 100vh;
   padding: 40px 24px 64px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .page::before {
@@ -117,6 +117,75 @@ textarea {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.debt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.debt-pill strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+  outline: none;
+}
+
+.tooltip-bubble {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translate(-50%, -6px);
+  background: #111827;
+  color: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  width: max-content;
+  max-width: 220px;
+  white-space: pre-line;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 10;
+}
+
+.tooltip:hover .tooltip-bubble,
+.tooltip:focus-within .tooltip-bubble {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  font-size: 10px;
+  color: #667085;
+  background: #f8fafc;
 }
 
 .pill-action {
@@ -150,6 +219,25 @@ textarea {
 .pill-action:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 24px rgba(15, 23, 42, 0.1);
+}
+
+.pill-action--danger {
+  color: #8b2c2c;
+  border-color: rgba(139, 44, 44, 0.25);
+  background: linear-gradient(180deg, #fff7f7 0%, #fef2f2 100%);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background: #f3f4f6;
+  color: #9aa3af;
+  cursor: not-allowed;
 }
 
 .today-row {
@@ -387,7 +475,7 @@ textarea {
 
 .task-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   flex: 1;
 }
@@ -560,6 +648,246 @@ textarea {
   padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid #e2e6ef;
+}
+
+.pill-meta.warn {
+  color: #7a6640;
+  border-color: rgba(190, 160, 90, 0.4);
+  background: rgba(255, 247, 230, 0.9);
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-age {
+  color: #728096;
+}
+
+.task-row.aged .task-text {
+  color: #2f3b4a;
+  font-weight: 600;
+}
+
+.task-row.aged .task-age {
+  color: #8a6f45;
+}
+
+.task-row.done .task-text {
+  color: #9aa3af;
+  font-weight: 500;
+}
+
+.task-row.aged .pill-meta,
+.task-row.aged .task-meta .pill-meta {
+  border-color: rgba(190, 170, 120, 0.4);
+  background: rgba(255, 250, 235, 0.85);
+  color: #7a6845;
+}
+
+.task-row.highlight {
+  box-shadow: 0 12px 26px rgba(154, 128, 66, 0.18);
+  border-color: rgba(154, 128, 66, 0.35);
+}
+
+.decision-inline {
+  font-size: 13px;
+  color: #7a6a4a;
+}
+
+.task-sub {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.decision-card {
+  border-radius: 20px;
+  border: 1px solid #eadfca;
+  background: linear-gradient(180deg, rgba(255, 250, 239, 0.98), rgba(255, 255, 255, 0.92));
+  padding: 22px;
+  box-shadow: 0 12px 24px rgba(126, 94, 44, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.decision-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.decision-label {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8a7b5a;
+  margin-bottom: 4px;
+}
+
+.decision-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2f3b4a;
+}
+
+.decision-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.decision-lock-note {
+  color: #7a6a4a;
+  font-size: 13px;
+  align-self: flex-start;
+}
+
+.decision-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.decision-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.decision-form-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.decision-textarea {
+  min-height: 120px;
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.decision-select {
+  height: 46px;
+  border-radius: 999px;
+  padding: 0 14px;
+}
+
+.decision-form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.decision-form-text {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.decision-lock .task-list {
+  opacity: 0.7;
+}
+
+.decision-lock .glass-card .input-row,
+.decision-lock .glass-card .color-pill-row {
+  opacity: 0.7;
+}
+
+.primary-btn.danger {
+  background: #7f1d1d;
+}
+
+.history-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-label {
+  font-size: 12px;
+  display: block;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8f99a8;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 4px;
+}
+
+.summary-note {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 30;
+}
+
+.modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e3e7ef;
+  padding: 24px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-title {
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+  color: #1f2937;
+}
+
+.modal-text {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .footer-row {

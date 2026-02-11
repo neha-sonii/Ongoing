@@ -6,6 +6,13 @@ const taskSchema = new mongoose.Schema(
     completed: { type: Boolean, default: false },
     completedAt: { type: Date, default: null },
     color: { type: String, default: "sage" },
+    rolloverCount: { type: Number, default: 0 },
+    decisionStatus: { type: String, default: null },
+    decisionStatusDate: { type: String, default: null },
+    killed: { type: Boolean, default: false },
+    killedAt: { type: Date, default: null },
+    killReason: { type: String, default: "" },
+    killNote: { type: String, default: "" },
     day: {
       type: String,
       default: () => new Date().toISOString().split("T")[0]

@@ -26,10 +26,10 @@ app.get("/tasks", async (req, res) => {
 
   if (view === "today") {
     await Task.updateMany(
-      { completed: false, day: { $lt: today } },
-      { $set: { day: today } }
+      { completed: false, killed: { $ne: true }, day: { $lt: today } },
+      { $set: { day: today }, $inc: { rolloverCount: 1 } }
     );
-    const tasks = await Task.find({ day: today }).sort({
+    const tasks = await Task.find({ day: today, killed: { $ne: true } }).sort({
       createdAt: -1
     });
     res.json(tasks);
@@ -37,9 +37,9 @@ app.get("/tasks", async (req, res) => {
   }
 
   if (view === "history") {
-    const tasks = await Task.find({ completed: true, day: { $lt: today } }).sort({
-      completedAt: -1
-    });
+    const tasks = await Task.find({
+      $or: [{ completed: true, day: { $lt: today } }, { killed: true }]
+    }).sort({ killedAt: -1, completedAt: -1, createdAt: -1 });
     res.json(tasks);
     return;
   }
@@ -53,7 +53,8 @@ app.post("/tasks", async (req, res) => {
   const task = await Task.create({
     text,
     color: color || "sage",
-    day: day || getToday()
+    day: day || getToday(),
+    rolloverCount: 0
   });
   res.status(201).json(task);
 });
@@ -73,8 +74,89 @@ app.patch("/tasks", async (req, res) => {
     res.status(400).json({ error: "Task id is required." });
     return;
   }
+  const today = getToday();
+  const action = req.body?.action;
+
+  if (action === "do_today") {
+    const task = await Task.findByIdAndUpdate(
+      id,
+      { decisionStatus: "do_today", decisionStatusDate: today },
+      { new: true }
+    );
+    res.json(task);
+    return;
+  }
+
+  if (action === "rescope") {
+    const task = await Task.findById(id);
+    if (!task) {
+      res.status(404).json({ error: "Task not found." });
+      return;
+    }
+    const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    const cleaned = entries.map((item) => String(item || "").trim()).filter(Boolean);
+    if (cleaned.length === 0) {
+      res.status(400).json({ error: "Rescope entries are required." });
+      return;
+    }
+    const [first, ...rest] = cleaned;
+    const now = new Date();
+    task.text = first;
+    task.createdAt = now;
+    task.updatedAt = now;
+    task.day = today;
+    task.rolloverCount = 0;
+    task.completed = false;
+    task.completedAt = null;
+    task.killed = false;
+    task.killedAt = null;
+    task.killReason = "";
+    task.killNote = "";
+    task.decisionStatus = "rescope";
+    task.decisionStatusDate = today;
+    await task.save();
+
+    const created = rest.length
+      ? await Task.insertMany(
+          rest.map((text) => ({
+            text,
+            color: task.color || "mist",
+            day: today,
+            rolloverCount: 0
+          }))
+        )
+      : [];
+    res.json({ updated: task, created });
+    return;
+  }
+
+  if (action === "kill") {
+    const reason = String(req.body?.reason || "").trim();
+    if (!reason) {
+      res.status(400).json({ error: "Kill reason is required." });
+      return;
+    }
+    const task = await Task.findByIdAndUpdate(
+      id,
+      {
+        killed: true,
+        killedAt: new Date(),
+        killReason: reason,
+        killNote: String(req.body?.note || "").trim(),
+        decisionStatus: "kill",
+        decisionStatusDate: today,
+        completed: false,
+        completedAt: null
+      },
+      { new: true }
+    );
+    res.json(task);
+    return;
+  }
+
   const updates = { ...req.body };
   delete updates.id;
+  delete updates.action;
   if (Object.prototype.hasOwnProperty.call(updates, "completed")) {
     updates.completedAt = updates.completed ? new Date() : null;
   }
