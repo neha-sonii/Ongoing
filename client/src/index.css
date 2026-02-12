@@ -416,7 +416,7 @@ select:disabled {
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 12px 22px rgba(15, 23, 42, 0.18);
-  height: 46px;
+  /* height: 46px; */
 }
 
 .meta-line {
@@ -921,6 +921,12 @@ select:disabled {
 
   .today-title {
     font-size: 28px;
+  }
+
+  .input-row .input-field {
+    height: 60px;
+    font-size: 16px;
+    padding: 10px 18px;
   }
 
   .input-row {
