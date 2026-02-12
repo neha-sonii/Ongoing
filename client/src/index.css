@@ -159,7 +159,7 @@ textarea {
   font-size: 12px;
   line-height: 1.4;
   width: max-content;
-  max-width: 220px;
+  max-width: min(260px, 80vw);
   white-space: pre-line;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.2);
   opacity: 0;
@@ -941,6 +941,29 @@ select:disabled {
   .pill-action {
     width: 100%;
     justify-content: center;
+  }
+
+  .tooltip {
+    max-width: 100%;
+  }
+
+  .tooltip-bubble {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: 0;
+    transform: translate(0, -6px);
+    max-width: calc(100vw - 36px);
+    white-space: normal;
+  }
+
+  .debt-tip .tooltip-bubble {
+    left: auto;
+    right: 0;
+  }
+
+  .tooltip:hover .tooltip-bubble,
+  .tooltip:focus-within .tooltip-bubble {
+    transform: translate(0, 0);
   }
 }
 
